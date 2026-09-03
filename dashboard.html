@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A股综合分析看板</title>
+<!-- 图表库：Chart.js 通过 CDN 引用 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  /* ========== 全局浅色商务风格 ========== */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+    background: #f4f6fa;
+    color: #2c3e50;
+    padding: 24px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; }
+
+  /* 顶部标题栏 */
+  .page-header {
+    background: linear-gradient(135deg, #1f3a93 0%, #3498db 100%);
+    color: #fff;
+    border-radius: 14px;
+    padding: 26px 32px;
+    margin-bottom: 26px;
+    box-shadow: 0 6px 18px rgba(31,58,147,.18);
+  }
+  .page-header h1 { font-size: 26px; letter-spacing: 1px; }
+  .page-header p { opacity: .9; font-size: 14px; margin-top: 6px; }
+
+  /* KPI 卡片 */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 18px;
+    margin-bottom: 26px;
+  }
+  .kpi-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px 22px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.05);
+    border-left: 5px solid #3498db;
+    transition: transform .15s ease;
+  }
+  .kpi-card:hover { transform: translateY(-3px); }
+  .kpi-card.gold { border-left-color: #f39c12; }
+  .kpi-card.green { border-left-color: #27ae60; }
+  .kpi-card.purple { border-left-color: #8e44ad; }
+  .kpi-label { font-size: 13px; color: #7f8c8d; }
+  .kpi-value { font-size: 26px; font-weight: 700; margin-top: 6px; color: #1f3a93; }
+  .kpi-sub { font-size: 13px; color: #7f8c8d; margin-top: 4px; }
+
+  /* 区块卡片 */
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px 26px;
+    margin-bottom: 26px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.05);
+  }
+  .card-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1f3a93;
+    border-left: 4px solid #3498db;
+    padding-left: 12px;
+    margin-bottom: 18px;
+  }
+
+  /* 排名表格 */
+  .table-scroll { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  th, td { padding: 11px 14px; text-align: center; border-bottom: 1px solid #eef1f5; }
+  th { background: #eef3fb; color: #1f3a93; font-weight: 700; }
+  tbody tr:hover { background: #f7faff; }
+  /* 排名前三浅金色高亮 */
+  tr.rank-top { background: #fff8e1 !important; }
+  tr.rank-top:hover { background: #ffefc2 !important; }
+  .name-cell { text-align: left; font-weight: 600; }
+  .badge {
+    display: inline-block; min-width: 46px;
+    padding: 2px 10px; border-radius: 20px;
+    font-size: 12px; font-weight: 700; color:#fff;
+  }
+  .badge.gold { background: #f39c12; }
+  .badge.silver { background: #95a5a6; }
+  .badge.bronze { background: #cd7f32; }
+
+  /* 图表两列布局 */
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .chart-box { background: #fff; border-radius: 12px; padding: 18px 20px; box-shadow: 0 3px 10px rgba(0,0,0,.05); }
+  .chart-box h3 { font-size: 15px; color: #1f3a93; margin-bottom: 12px; text-align:center; }
+  .chart-box canvas { width: 100% !important; }
+  /* 散点图为全宽 + maintainAspectRatio:false，需给容器一个固定高度，
+     否则 canvas 会随容器无限纵向拉伸（“一直在伸长”）。
+     用 flex 纵向布局：标题占固定空间，canvas 填满剩余高度，避免底部被裁剪。 */
+  .chart-box.full-width { height: 520px; display: flex; flex-direction: column; overflow: hidden; }
+  .chart-box.full-width canvas { display: block; flex: 1 1 auto; min-height: 0; }
+  @media (max-width: 900px) { .chart-grid { grid-template-columns: 1fr; } }
+
+  /* 底部结论 */
+  .conclusion ul { list-style: none; }
+  .conclusion li {
+    background: #f7faff; border-left: 4px solid #3498db;
+    padding: 12px 16px; border-radius: 8px; margin-bottom: 10px;
+  }
+  .source-note {
+    margin-top: 16px; font-size: 12px; color: #7f8c8d;
+    background: #eef3fb; padding: 12px 16px; border-radius: 8px;
+  }
+  footer { text-align: center; color: #95a5a6; font-size: 12px; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ========== 顶部标题 ========== -->
+  <div class="page-header">
+    <h1>A股综合分析看板</h1>
+    <p>基于本地 15 家上市公司财务与股价数据，按「低估 + 优质」逻辑综合打分 | 数据采集于 2026年9月</p>
+  </div>
+
+  <!-- ========== 模块一：KPI 指标卡 ========== -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">总分析公司数</div>
+      <div class="kpi-value">15 <span style="font-size:16px;">家</span></div>
+      <div class="kpi-sub">跨银行/消费/医药/科技等</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">覆盖行业数</div>
+      <div class="kpi-value">7 <span style="font-size:16px;">个</span></div>
+      <div class="kpi-sub">按大类行业口径统计</div>
+    </div>
+    <div class="kpi-card gold">
+      <div class="kpi-label">综合排名 TOP1</div>
+      <div class="kpi-value">海尔智家</div>
+      <div class="kpi-sub">综合得分：0.66</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">近一年涨幅最高</div>
+      <div class="kpi-value">中国石油</div>
+      <div class="kpi-sub">累计涨幅 +36.65%</div>
+    </div>
+  </div>
+
+  <!-- ========== 模块二：公司综合排名表 ========== -->
+  <div class="card">
+    <div class="card-title">公司综合排名</div>
+    <div class="table-scroll">
+      <table id="rankTable">
+        <thead>
+          <tr>
+            <th>排名</th>
+            <th>公司名称</th>
+            <th>所属行业</th>
+            <th>综合得分</th>
+            <th>ROE (%)</th>
+            <th>资产负债率 (%)</th>
+          </tr>
+        </thead>
+        <tbody id="rankBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ========== 模块三：图表展示区 ========== -->
+  <div class="card">
+    <div class="card-title">可视化分析</div>
+    <div class="chart-grid">
+      <div class="chart-box">
+        <h3>① 行业平均 ROE 对比</h3>
+        <canvas id="roeChart"></canvas>
+      </div>
+      <div class="chart-box">
+        <h3>② 公司综合得分 TOP10</h3>
+        <canvas id="top10Chart"></canvas>
+      </div>
+    </div>
+    <div class="chart-grid" style="margin-top:18px;">
+      <div class="chart-box full-width" style="grid-column: 1 / -1;">
+        <h3>③ ROE vs 资产负债率（四象限，横轴=负债率，纵轴=ROE）</h3>
+        <canvas id="scatterChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== 模块四：结论与说明 ========== -->
+  <div class="card conclusion">
+    <div class="card-title">结论与说明</div>
+    <ul>
+      <li>综合得分第1名为 <b>海尔智家</b>（0.66），其在「低估值 + 高ROE + 低负债」维度上综合最优，是当前样本中最值得关注的“低估优质”标的。</li>
+      <li>贵州茅台以约 34% 的平均 ROE 领跑盈利质量，恒瑞医药负债率最低（约 8.6%），反映不同行业在盈利与杠杆结构上分化明显。</li>
+      <li>近一年中国石油累计涨幅最高（约 36.65%），而银行等高负债板块在同一评分口径下天然承压，看排名时应结合行业属性解读。</li>
+      <li>医药、消费类公司普遍呈现「高ROE + 中低负债」的稳健画像；科技类波动与分化更大，需在成长性与估值之间取舍。</li>
+      <li>本看板综合得分由「估值优势(40%) + ROE(35%) + 低负债(25%)」三因子加权得到，仅作研究参考，不构成投资建议。</li>
+    </ul>
+    <div class="source-note">
+      <b>数据来源：</b>东方财富网 F10 财务指标及腾讯行情接口，采集于 2026年9月。财务数据为 2023-2025 三年年报，
+      股价数据为近一年日线（前复权）。综合排名结果由《综合分析脚本.py》计算生成。
+    </div>
+  </div>
+
+  <footer>理杏仁2.0 · 本地数据分析看板 · 双击即可打开</footer>
+</div>
+
+<script>
+/* =====================================================================
+   内嵌数据（由 Python 脚本自动生成）。
+   说明：为规避浏览器直接双击打开时 file:// 协议下的跨域限制，
+   数据已内嵌为 JS 对象。若需改为从 CSV 动态加载，可自行开启 fetch 逻辑。
+   ===================================================================== */
+const tableRows = [{"rank": 1, "name": "海尔智家", "industry": "消费-家电", "score": 0.66, "roe": 15.57, "debt": 58.45}, {"rank": 2, "name": "迈瑞医疗", "industry": "医药-医疗器械", "score": 0.59, "roe": 27.43, "debt": 28.64}, {"rank": 3, "name": "贵州茅台", "industry": "消费-白酒", "score": 0.5667, "roe": 33.82, "debt": 17.81}, {"rank": 4, "name": "中国石油", "industry": "能源-石油石化", "score": 0.5567, "roe": 9.36, "debt": 38.23}, {"rank": 5, "name": "伊利股份", "industry": "消费-乳品", "score": 0.55, "roe": 17.59, "debt": 62.21}, {"rank": 6, "name": "云南白药", "industry": "医药-中药", "score": 0.53, "roe": 11.77, "debt": 26.12}, {"rank": 7, "name": "招商银行", "industry": "银行", "score": 0.5267, "roe": 12.42, "debt": 90.07}, {"rank": 8, "name": "万华化学", "industry": "化工", "score": 0.52, "roe": 13.61, "debt": 63.4}, {"rank": 9, "name": "立讯精密", "industry": "科技-消费电子", "score": 0.49, "roe": 15.77, "debt": 61.61}, {"rank": 10, "name": "长江电力", "industry": "能源-电力", "score": 0.4867, "roe": 14.08, "debt": 60.66}, {"rank": 11, "name": "宁德时代", "industry": "新能源-动力电池", "score": 0.4433, "roe": 19.36, "debt": 65.51}, {"rank": 12, "name": "工商银行", "industry": "银行", "score": 0.42, "roe": 9.15, "debt": 91.8}, {"rank": 13, "name": "恒瑞医药", "industry": "医药-创新药", "score": 0.4, "roe": 12.24, "debt": 8.63}, {"rank": 14, "name": "中兴通讯", "industry": "科技-通信设备", "score": 0.3833, "roe": 10.87, "debt": 65.33}, {"rank": 15, "name": "科大讯飞", "industry": "科技-人工智能", "score": 0.2267, "roe": 3.64, "debt": 54.58}];
+
+/* 行业平均 ROE 数据 */
+const industryLabels = ["科技", "银行", "能源", "化工", "医药", "新能源", "消费"];
+const industryROE = [10.09, 10.78, 11.72, 13.61, 17.14, 19.36, 22.33];
+
+/* Top10 公司（名称升序展示以便横向条形图阅读） */
+let top10Labels = ["海尔智家", "迈瑞医疗", "贵州茅台", "中国石油", "伊利股份", "云南白药", "招商银行", "万华化学", "立讯精密", "长江电力"];
+let top10Values = [0.66, 0.59, 0.5667, 0.5567, 0.55, 0.53, 0.5267, 0.52, 0.49, 0.4867];
+top10Labels = top10Labels.slice().reverse();
+top10Values = top10Values.slice().reverse();
+
+/* 散点图数据 */
+const scatterNames = ["海尔智家", "迈瑞医疗", "贵州茅台", "中国石油", "伊利股份", "云南白药", "招商银行", "万华化学", "立讯精密", "长江电力", "宁德时代", "工商银行", "恒瑞医药", "中兴通讯", "科大讯飞"];
+const scatterROE = [15.57, 27.43, 33.82, 9.36, 17.59, 11.77, 12.42, 13.61, 15.77, 14.08, 19.36, 9.15, 12.24, 10.87, 3.64];
+const scatterDebt = [58.45, 28.64, 17.81, 38.23, 62.21, 26.12, 90.07, 63.4, 61.61, 60.66, 65.51, 91.8, 8.63, 65.33, 54.58];
+const scatterScore = [0.66, 0.59, 0.5667, 0.5567, 0.55, 0.53, 0.5267, 0.52, 0.49, 0.4867, 0.4433, 0.42, 0.4, 0.3833, 0.2267];
+const ROE_MED = 13.61;
+const DEBT_MED = 60.66;
+
+/* ========== 渲染排名表 ========== */
+function renderTable() {
+  const medal = {1: '<span class="badge gold">1</span>', 2: '<span class="badge silver">2</span>', 3: '<span class="badge bronze">3</span>'};
+  const tbody = document.getElementById('rankBody');
+  tbody.innerHTML = tableRows.map(function(r) {
+    const rankHtml = medal[r.rank] || r.rank;
+    const roe = r.roe == null ? '—' : r.roe.toFixed(2);
+    const debt = r.debt == null ? '—' : r.debt.toFixed(2);
+    const cls = r.rank <= 3 ? ' class="rank-top"' : '';
+    return '<tr' + cls + '>' +
+      '<td>' + rankHtml + '</td>' +
+      '<td class="name-cell">' + r.name + '</td>' +
+      '<td>' + r.industry + '</td>' +
+      '<td><b>' + r.score.toFixed(4) + '</b></td>' +
+      '<td>' + roe + '</td>' +
+      '<td>' + debt + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+/* ========== 图1：行业平均 ROE 柱状图 ========== */
+function makeRoeChart() {
+  new Chart(document.getElementById('roeChart'), {
+    type: 'bar',
+    data: {
+      labels: industryLabels,
+      datasets: [{
+        label: '行业平均ROE(%)',
+        data: industryROE,
+        backgroundColor: industryLabels.map(function(_, i){
+          return ['#1f3a93','#2471a3','#2980b9','#3498db','#5dade2','#85c1e9','#aed6f1'][i % 7];
+        }),
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { title: { display: true, text: 'ROE (%)' } } }
+    }
+  });
+}
+
+/* ========== 图2：综合得分 Top10 横向条形图 ========== */
+function makeTop10Chart() {
+  new Chart(document.getElementById('top10Chart'), {
+    type: 'bar',
+    data: {
+      labels: top10Labels,
+      datasets: [{
+        label: '综合得分',
+        data: top10Values,
+        backgroundColor: '#3498db',
+        borderRadius: 6,
+        barPercentage: 0.6
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { x: { title: { display: true, text: '综合得分' }, min: 0, max: 0.75 } }
+    }
+  });
+}
+
+/* ========== 图3：ROE vs 负债率 散点图（四象限） ==========
+   通过自定义插件 afterDraw 在图上叠加中位参考线并标注四个象限文字。 */
+function wireScatterDraw() {
+  new Chart(document.getElementById('scatterChart'), {
+    type: 'scatter',
+    data: { datasets: [{
+      label: '公司',
+      data: scatterNames.map(function(name, i) {
+        return { x: scatterDebt[i], y: scatterROE[i], n: name, s: scatterScore[i] };
+      }),
+      backgroundColor: '#e74c3c',
+      pointRadius: 7,
+      pointHoverRadius: 9
+    }]},
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: function(ctx){
+          const p = ctx.raw;
+          return ' ' + p.n + '  ROE:' + p.y + '%  负债率:' + p.x + '%  得分:' + p.s;
+        } } }
+      },
+      scales: {
+        x: { title: { display: true, text: '平均资产负债率 (%)' } },
+        y: { title: { display: true, text: '平均 ROE (%)' } }
+      }
+    },
+    plugins: [{
+      id: 'quadrantGuides',
+      afterDraw: function(chart){
+        const area = chart.chartArea;
+        const xs = chart.scales.x, ys = chart.scales.y;
+        const x0 = xs.getPixelForValue(DEBT_MED);
+        const y0 = ys.getPixelForValue(ROE_MED);
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(0,0,0,.30)';
+        ctx.setLineDash([6,4]);
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        ctx.moveTo(x0, area.top); ctx.lineTo(x0, area.bottom);
+        ctx.moveTo(area.left, y0); ctx.lineTo(area.right, y0);
+        ctx.stroke();
+        ctx.font = '11px "Microsoft YaHei"';
+        ctx.fillStyle = 'rgba(0,0,0,.55)';
+        ctx.textAlign='left'; ctx.textBaseline='top';
+        ctx.fillText('低负债·高ROE（优质区）', area.left + 8, area.top + 6);
+        ctx.textAlign='right';
+        ctx.fillText('高负债·高ROE（扩张区）', area.right - 8, area.top + 6);
+        ctx.textBaseline='bottom';
+        ctx.fillText('低负债·低ROE（稳健区）', area.left + 8, area.bottom - 4);
+        ctx.textAlign='right';
+        ctx.fillText('高负债·低ROE（警惕区）', area.right - 8, area.bottom - 4);
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+/* ========== 初始化 ========== */
+document.addEventListener('DOMContentLoaded', function(){
+  renderTable();
+  makeRoeChart();
+  makeTop10Chart();
+  wireScatterDraw();
+});
+</script>
+</body>
+</html>
