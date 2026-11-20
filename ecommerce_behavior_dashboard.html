@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>电商用户行为分析大屏 · Hadoop+Spark</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", sans-serif;
+    background: #0f1419;
+    color: #e6e6e6;
+    padding: 24px;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #2a2f3a;
+  }
+  .header h1 {
+    font-size: 24px;
+    color: #4fc3f7;
+    font-weight: 600;
+  }
+  .header p {
+    color: #8a94a6;
+    font-size: 13px;
+    margin-top: 6px;
+  }
+  .badge {
+    display: inline-block;
+    background: #1a2332;
+    color: #f48fb1;
+    font-size: 11px;
+    padding: 2px 10px;
+    border-radius: 99px;
+    margin-top: 8px;
+  }
+
+  /* KPI 卡片 */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: linear-gradient(135deg, #1a2332, #141c2b);
+    border: 1px solid #2a3a4a;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+  }
+  .kpi-card .label { color: #8a94a6; font-size: 13px; }
+  .kpi-card .value { color: #4fc3f7; font-size: 30px; font-weight: 700; margin: 8px 0; }
+  .kpi-card .sub { color: #6b7280; font-size: 12px; }
+
+  /* 图表网格 */
+  .grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .grid-equal {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .chart-box {
+    background: #141c2b;
+    border: 1px solid #2a2f3a;
+    border-radius: 10px;
+    padding: 18px;
+  }
+  .chart-box h3 {
+    font-size: 14px;
+    color: #c9d1d9;
+    margin-bottom: 14px;
+    font-weight: 600;
+  }
+  .chart-box .note {
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 8px;
+  }
+  .chart-wrapper { position: relative; height: 280px; }
+
+  .footer {
+    text-align: center;
+    color: #6b7280;
+    font-size: 12px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid #2a2f3a;
+  }
+
+  @media (max-width: 900px) {
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .grid, .grid-equal { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🛒 电商用户行为离线分析大屏</h1>
+  <p>Hadoop 3.3 · Hive 3.1 · Spark 3.5 (PySpark) · HDFS · Chart.js</p>
+  <span class="badge">模拟数据 · 3000万行 · SparkSQL 聚合</span>
+</div>
+
+<!-- KPI -->
+<div class="kpi-row">
+  <div class="kpi-card">
+    <div class="label">总 PV</div>
+    <div class="value" id="kpi-pv">-</div>
+    <div class="sub">页面浏览量</div>
+  </div>
+  <div class="kpi-card">
+    <div class="label">UV</div>
+    <div class="value" id="kpi-uv">-</div>
+    <div class="sub">独立访客</div>
+  </div>
+  <div class="kpi-card">
+    <div class="label">PV→Buy 转化</div>
+    <div class="value" id="kpi-funnel">-</div>
+    <div class="sub">UV 口径</div>
+  </div>
+  <div class="kpi-card">
+    <div class="label">日均 PV</div>
+    <div class="value" id="kpi-daily">-</div>
+    <div class="sub">近 30 天</div>
+  </div>
+</div>
+
+<!-- 行1：日趋势（宽）+ 行为分布（窄） -->
+<div class="grid">
+  <div class="chart-box">
+    <h3>📈 每日 PV / UV 趋势（近 30 天）</h3>
+    <div class="chart-wrapper"><canvas id="dailyChart"></canvas></div>
+    <div class="note">11-20 为当日实时数据（不完整）</div>
+  </div>
+  <div class="chart-box">
+    <h3>🎯 行为分布</h3>
+    <div class="chart-wrapper"><canvas id="behaviorChart"></canvas></div>
+    <div class="note">pv 90.01% / cart 5% / fav 3% / buy 2%</div>
+  </div>
+</div>
+
+<!-- 行2：漏斗 + 时段分布 -->
+<div class="grid-equal">
+  <div class="chart-box">
+    <h3>🔻 转化漏斗（去重 UV 口径）</h3>
+    <div class="chart-wrapper"><canvas id="funnelChart"></canvas></div>
+    <div class="note">PV 100万 → 加购/收藏 90.92万 → 购买 45.10万</div>
+  </div>
+  <div class="chart-box">
+    <h3>⏰ 24 小时活跃度</h3>
+    <div class="chart-wrapper"><canvas id="hourlyChart"></canvas></div>
+    <div class="note">模拟数据均匀分布，无明显高峰</div>
+  </div>
+</div>
+
+<!-- 行3：Top10 -->
+<div class="chart-box">
+  <h3>🏆 PV Top 10 商品</h3>
+  <div class="chart-wrapper" style="height: 300px;"><canvas id="topChart"></canvas></div>
+  <div class="note">数据分布均匀，无明显爆款</div>
+</div>
+
+<div class="footer">
+  数据源：PySpark 分布式生成 3000 万行模拟埋点 → HDFS Parquet → Hive ODS/DWD/DWS → SparkSQL 聚合<br>
+  全量分析耗时 ~309s · 单条聚合查询 ~40s（较 Hive on MR 提升约 3 倍）
+</div>
+
+<script>
+// ====== 数据（从 Spark 导出） ======
+const DATA = {
+  "overall": { "pv": 30000000, "uv": 1000000 },
+  "behavior": [
+    { "behavior": "pv", "cnt": 27003010 },
+    { "behavior": "cart", "cnt": 1498570 },
+    { "behavior": "fav", "cnt": 898753 },
+    { "behavior": "buy", "cnt": 599667 }
+  ],
+  "daily": [
+    {"dt":"2026-10-21","pv":623425,"uv":463562},
+    {"dt":"2026-10-22","pv":1001568,"uv":633027},
+    {"dt":"2026-10-23","pv":1000623,"uv":631882},
+    {"dt":"2026-10-24","pv":1001220,"uv":632937},
+    {"dt":"2026-10-25","pv":999880,"uv":631697},
+    {"dt":"2026-10-26","pv":997507,"uv":631209},
+    {"dt":"2026-10-27","pv":1000674,"uv":632640},
+    {"dt":"2026-10-28","pv":999206,"uv":632047},
+    {"dt":"2026-10-29","pv":999770,"uv":631826},
+    {"dt":"2026-10-30","pv":999245,"uv":631766},
+    {"dt":"2026-10-31","pv":999248,"uv":631681},
+    {"dt":"2026-11-01","pv":999689,"uv":631686},
+    {"dt":"2026-11-02","pv":999879,"uv":632544},
+    {"dt":"2026-11-03","pv":999797,"uv":631808},
+    {"dt":"2026-11-04","pv":1000193,"uv":632408},
+    {"dt":"2026-11-05","pv":998410,"uv":631635},
+    {"dt":"2026-11-06","pv":1000097,"uv":632858},
+    {"dt":"2026-11-07","pv":999551,"uv":632030},
+    {"dt":"2026-11-08","pv":999443,"uv":632094},
+    {"dt":"2026-11-09","pv":999252,"uv":631576},
+    {"dt":"2026-11-10","pv":1001460,"uv":632982},
+    {"dt":"2026-11-11","pv":1000331,"uv":631743},
+    {"dt":"2026-11-12","pv":999120,"uv":632044},
+    {"dt":"2026-11-13","pv":1000851,"uv":632086},
+    {"dt":"2026-11-14","pv":999737,"uv":632423},
+    {"dt":"2026-11-15","pv":1001106,"uv":632349},
+    {"dt":"2026-11-16","pv":999202,"uv":631553},
+    {"dt":"2026-11-17","pv":1001001,"uv":632976},
+    {"dt":"2026-11-18","pv":999763,"uv":631976},
+    {"dt":"2026-11-19","pv":1002304,"uv":632833},
+    {"dt":"2026-11-20","pv":376448,"uv":313820}
+  ],
+  "funnel": {
+    "pv_u": 1000000, "cart_fav_u": 909244, "buy_u": 450987,
+    "pv_to_cart_pct": 90.92, "pv_to_buy_pct": 45.1
+  },
+  "top_pv": [
+    {"item_id":178,"pv_cnt":92},{"item_id":452812,"pv_cnt":89},
+    {"item_id":390823,"pv_cnt":88},{"item_id":78242,"pv_cnt":87},
+    {"item_id":376011,"pv_cnt":87},{"item_id":498266,"pv_cnt":87},
+    {"item_id":271567,"pv_cnt":86},{"item_id":343160,"pv_cnt":86},
+    {"item_id":255125,"pv_cnt":86},{"item_id":449962,"pv_cnt":86}
+  ],
+  "hourly": [
+    {"hour":"00","pv":1249567},{"hour":"01","pv":1250795},{"hour":"02","pv":1251768},
+    {"hour":"03","pv":1251308},{"hour":"04","pv":1250036},{"hour":"05","pv":1250351},
+    {"hour":"06","pv":1247441},{"hour":"07","pv":1249319},{"hour":"08","pv":1248893},
+    {"hour":"09","pv":1251220},{"hour":"10","pv":1247983},{"hour":"11","pv":1251543},
+    {"hour":"12","pv":1249958},{"hour":"13","pv":1248105},{"hour":"14","pv":1250056},
+    {"hour":"15","pv":1251288},{"hour":"16","pv":1248581},{"hour":"17","pv":1250603},
+    {"hour":"18","pv":1248085},{"hour":"19","pv":1250554},{"hour":"20","pv":1251115},
+    {"hour":"21","pv":1250238},{"hour":"22","pv":1251547},{"hour":"23","pv":1249646}
+  ]
+};
+
+const COLORS = {
+  blue: '#4fc3f7', green: '#66bb6a', orange: '#ffa726', pink: '#f48fb1',
+  purple: '#ab47bc', teal: '#26c6da', red: '#ef5350'
+};
+
+// ====== KPI ======
+function fmt(n) { return n.toLocaleString('zh-CN'); }
+document.getElementById('kpi-pv').textContent = (DATA.overall.pv/10000).toFixed(0) + '万';
+document.getElementById('kpi-uv').textContent = (DATA.overall.uv/10000).toFixed(0) + '万';
+document.getElementById('kpi-funnel').textContent = DATA.funnel.pv_to_buy_pct + '%';
+const avgDaily = Math.round(DATA.daily.reduce((s,d)=>s+d.pv,0)/30);
+document.getElementById('kpi-daily').textContent = (avgDaily/10000).toFixed(0) + '万';
+
+Chart.defaults.color = '#8a94a6';
+Chart.defaults.borderColor = '#2a2f3a';
+
+// ====== 1. 日趋势（双轴折线） ======
+new Chart(document.getElementById('dailyChart'), {
+  type: 'line',
+  data: {
+    labels: DATA.daily.map(d => d.dt.slice(5)),
+    datasets: [
+      { label: 'PV', data: DATA.daily.map(d=>d.pv), borderColor: COLORS.blue, backgroundColor: 'rgba(79,195,247,.1)', fill: true, tension: .3, yAxisID: 'y' },
+      { label: 'UV', data: DATA.daily.map(d=>d.uv), borderColor: COLORS.green, backgroundColor: 'transparent', fill: false, tension: .3, yAxisID: 'y1' }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    scales: {
+      y: { type: 'linear', position: 'left', title: { display: true, text: 'PV' } },
+      y1: { type: 'linear', position: 'right', title: { display: true, text: 'UV' }, grid: { drawOnChartArea: false } }
+    }
+  }
+});
+
+// ====== 2. 行为分布（环形图） ======
+new Chart(document.getElementById('behaviorChart'), {
+  type: 'doughnut',
+  data: {
+    labels: DATA.behavior.map(b=>b.behavior.toUpperCase()),
+    datasets: [{ data: DATA.behavior.map(b=>b.cnt), backgroundColor: [COLORS.blue, COLORS.orange, COLORS.pink, COLORS.green] }]
+  },
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+});
+
+// ====== 3. 漏斗（横向柱状） ======
+new Chart(document.getElementById('funnelChart'), {
+  type: 'bar',
+  data: {
+    labels: ['PV 浏览', '加购/收藏', '购买'],
+    datasets: [{ data: [DATA.funnel.pv_u, DATA.funnel.cart_fav_u, DATA.funnel.buy_u], backgroundColor: [COLORS.blue, COLORS.orange, COLORS.green] }]
+  },
+  options: {
+    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { x: { ticks: { callback: v => (v/10000).toFixed(0)+'万' } } }
+  }
+});
+
+// ====== 4. 时段分布（横向柱状） ======
+new Chart(document.getElementById('hourlyChart'), {
+  type: 'bar',
+  data: {
+    labels: DATA.hourly.map(h=>h.hour+':00'),
+    datasets: [{ label: 'PV', data: DATA.hourly.map(h=>h.pv), backgroundColor: COLORS.purple }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { y: { ticks: { callback: v => (v/10000).toFixed(0)+'万' } } }
+  }
+});
+
+// ====== 5. Top10 商品 ======
+new Chart(document.getElementById('topChart'), {
+  type: 'bar',
+  data: {
+    labels: DATA.top_pv.map(t=>'商品'+t.item_id),
+    datasets: [{ label: 'PV 次数', data: DATA.top_pv.map(t=>t.pv_cnt), backgroundColor: COLORS.teal }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } }
+  }
+});
+</script>
+</body>
+</html>
