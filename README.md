@@ -53,19 +53,14 @@
 ---
 
 ## 🛒 项目四：电商用户行为离线分析平台（Hadoop+Spark）
-
-**时间**：2026.11  
-**标签**：`Hadoop 3.3` `Hive 3.1` `Spark 3.5` `PySpark` `HDFS` `Chart.js`
-
-**背景**：从零搭建伪分布式大数据集群，完成3000万行电商埋点数据的生成、存储、分层建模与分析全链路。
-
+**时间**：2026.11 | **标签**：`Hadoop 3.3` `Hive 3.1` `Spark 3.5` `PySpark` `HDFS` `Chart.js`
+**背景**：从零搭建伪分布式大数据集群，完成 3000 万行电商埋点数据的生成、存储、分层建模与分析全链路。
 **行动与成果**：
-- 基于PySpark分布式向量化生成 **3000万行** 模拟行为数据（Parquet列存仅212MB）
-- 搭建Hadoop+Hive+Spark离线数仓（ODS/DWD/DWS三层）
-- SparkSQL聚合漏斗查询 **~40秒**（较Hive MR提升3倍）
-- 产出PV/UV、转化漏斗、RFM、TopN等10类指标
-- Chart.js交互大屏展示
-
+- 基于 PySpark 分布式向量化生成 **3000万行** 模拟行为数据（Parquet 列存仅 212MB）
+- 搭建 Hadoop+Hive+Spark 离线数仓（ODS/DWD/DWS 三层），MySQL 作 Hive Metastore
+- 全量分析耗时 **~309s**，单条聚合查询 **~40s**（较 Hive on MR 提升约 3 倍）
+- 产出 PV/UV（3000万/100万）、行为分布（pv 90%/buy 2%）、转化漏斗（UV 口径购买转化 **45.1%**）、30 日趋势、时段分布及 TopN 等 10 类指标
+- 基于 Chart.js 构建交互式可视化大屏
 🔗 [查看交互大屏](ecommerce_behavior_dashboard.html) | [工程细节与代码](#)
 
 ---
