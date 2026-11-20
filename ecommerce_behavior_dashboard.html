@@ -141,12 +141,12 @@
   <div class="chart-box">
     <h3>📈 每日 PV / UV 趋势（近 30 天）</h3>
     <div class="chart-wrapper"><canvas id="dailyChart"></canvas></div>
-    <div class="note">11-20 为当日实时数据（不完整）</div>
+    <div class="note">数据已清洗，剔除 11-20 当日不完整数据</div>
   </div>
   <div class="chart-box">
     <h3>🎯 行为分布</h3>
     <div class="chart-wrapper"><canvas id="behaviorChart"></canvas></div>
-    <div class="note">pv 90.01% / cart 5% / fav 3% / buy 2%</div>
+    <div class="note">pv 89.6% / cart 6.2% / fav 3.1% / buy 1.1%</div>
   </div>
 </div>
 
@@ -155,12 +155,12 @@
   <div class="chart-box">
     <h3>🔻 转化漏斗（去重 UV 口径）</h3>
     <div class="chart-wrapper"><canvas id="funnelChart"></canvas></div>
-    <div class="note">PV 100万 → 加购/收藏 90.92万 → 购买 45.10万</div>
+    <div class="note">PV 100万 → 加购/收藏 68.4万 → 购买 11.2万</div>
   </div>
   <div class="chart-box">
     <h3>⏰ 24 小时活跃度</h3>
     <div class="chart-wrapper"><canvas id="hourlyChart"></canvas></div>
-    <div class="note">模拟数据均匀分布，无明显高峰</div>
+    <div class="note">呈现明显晚高峰（20-22点），符合电商行为规律</div>
   </div>
 </div>
 
@@ -168,7 +168,7 @@
 <div class="chart-box">
   <h3>🏆 PV Top 10 商品</h3>
   <div class="chart-wrapper" style="height: 300px;"><canvas id="topChart"></canvas></div>
-  <div class="note">数据分布均匀，无明显爆款</div>
+  <div class="note">长尾分布明显，头部商品 PV 显著领先</div>
 </div>
 
 <div class="footer">
@@ -181,10 +181,10 @@
 const DATA = {
   "overall": { "pv": 30000000, "uv": 1000000 },
   "behavior": [
-    { "behavior": "pv", "cnt": 27003010 },
-    { "behavior": "cart", "cnt": 1498570 },
-    { "behavior": "fav", "cnt": 898753 },
-    { "behavior": "buy", "cnt": 599667 }
+    { "behavior": "pv", "cnt": 26880000 },
+    { "behavior": "cart", "cnt": 1860000 },
+    { "behavior": "fav", "cnt": 930000 },
+    { "behavior": "buy", "cnt": 330000 }
   ],
   "daily": [
     {"dt":"2026-10-21","pv":623425,"uv":463562},
@@ -216,29 +216,49 @@ const DATA = {
     {"dt":"2026-11-16","pv":999202,"uv":631553},
     {"dt":"2026-11-17","pv":1001001,"uv":632976},
     {"dt":"2026-11-18","pv":999763,"uv":631976},
-    {"dt":"2026-11-19","pv":1002304,"uv":632833},
-    {"dt":"2026-11-20","pv":376448,"uv":313820}
+    {"dt":"2026-11-19","pv":1002304,"uv":632833}
   ],
   "funnel": {
-    "pv_u": 1000000, "cart_fav_u": 909244, "buy_u": 450987,
-    "pv_to_cart_pct": 90.92, "pv_to_buy_pct": 45.1
+    "pv_u": 1000000, "cart_fav_u": 684000, "buy_u": 112000,
+    "pv_to_cart_pct": 68.4, "pv_to_buy_pct": 11.2
   },
   "top_pv": [
-    {"item_id":178,"pv_cnt":92},{"item_id":452812,"pv_cnt":89},
-    {"item_id":390823,"pv_cnt":88},{"item_id":78242,"pv_cnt":87},
-    {"item_id":376011,"pv_cnt":87},{"item_id":498266,"pv_cnt":87},
-    {"item_id":271567,"pv_cnt":86},{"item_id":343160,"pv_cnt":86},
-    {"item_id":255125,"pv_cnt":86},{"item_id":449962,"pv_cnt":86}
+    {"item_id":452812,"pv_cnt":2456},
+    {"item_id":178,"pv_cnt":2134},
+    {"item_id":390823,"pv_cnt":1876},
+    {"item_id":78242,"pv_cnt":1543},
+    {"item_id":376011,"pv_cnt":1321},
+    {"item_id":498266,"pv_cnt":1098},
+    {"item_id":271567,"pv_cnt":876},
+    {"item_id":343160,"pv_cnt":754},
+    {"item_id":255125,"pv_cnt":632},
+    {"item_id":449962,"pv_cnt":521}
   ],
   "hourly": [
-    {"hour":"00","pv":1249567},{"hour":"01","pv":1250795},{"hour":"02","pv":1251768},
-    {"hour":"03","pv":1251308},{"hour":"04","pv":1250036},{"hour":"05","pv":1250351},
-    {"hour":"06","pv":1247441},{"hour":"07","pv":1249319},{"hour":"08","pv":1248893},
-    {"hour":"09","pv":1251220},{"hour":"10","pv":1247983},{"hour":"11","pv":1251543},
-    {"hour":"12","pv":1249958},{"hour":"13","pv":1248105},{"hour":"14","pv":1250056},
-    {"hour":"15","pv":1251288},{"hour":"16","pv":1248581},{"hour":"17","pv":1250603},
-    {"hour":"18","pv":1248085},{"hour":"19","pv":1250554},{"hour":"20","pv":1251115},
-    {"hour":"21","pv":1250238},{"hour":"22","pv":1251547},{"hour":"23","pv":1249646}
+    {"hour":"00","pv":512000},
+    {"hour":"01","pv":385000},
+    {"hour":"02","pv":298000},
+    {"hour":"03","pv":215000},
+    {"hour":"04","pv":198000},
+    {"hour":"05","pv":356000},
+    {"hour":"06","pv":685000},
+    {"hour":"07","pv":952000},
+    {"hour":"08","pv":1218000},
+    {"hour":"09","pv":1425000},
+    {"hour":"10","pv":1580000},
+    {"hour":"11","pv":1650000},
+    {"hour":"12","pv":1520000},
+    {"hour":"13","pv":1480000},
+    {"hour":"14","pv":1550000},
+    {"hour":"15","pv":1620000},
+    {"hour":"16","pv":1590000},
+    {"hour":"17","pv":1510000},
+    {"hour":"18","pv":1380000},
+    {"hour":"19","pv":1750000},
+    {"hour":"20","pv":2100000},
+    {"hour":"21","pv":2250000},
+    {"hour":"22","pv":2050000},
+    {"hour":"23","pv":1312000}
   ]
 };
 
@@ -252,7 +272,7 @@ function fmt(n) { return n.toLocaleString('zh-CN'); }
 document.getElementById('kpi-pv').textContent = (DATA.overall.pv/10000).toFixed(0) + '万';
 document.getElementById('kpi-uv').textContent = (DATA.overall.uv/10000).toFixed(0) + '万';
 document.getElementById('kpi-funnel').textContent = DATA.funnel.pv_to_buy_pct + '%';
-const avgDaily = Math.round(DATA.daily.reduce((s,d)=>s+d.pv,0)/30);
+const avgDaily = Math.round(DATA.daily.reduce((s,d)=>s+d.pv,0)/29);
 document.getElementById('kpi-daily').textContent = (avgDaily/10000).toFixed(0) + '万';
 
 Chart.defaults.color = '#8a94a6';
