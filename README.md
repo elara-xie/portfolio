@@ -61,7 +61,7 @@
 - 全量分析耗时 **~309s**，单条聚合查询 **~40s**（较 Hive on MR 提升约 3 倍）
 - 产出 PV/UV（3000万/100万）、行为分布（pv 90%/buy 2%）、转化漏斗（UV 口径购买转化 **45.1%**）、30 日趋势、时段分布及 TopN 等 10 类指标
 - 基于 Chart.js 构建交互式可视化大屏
-🔗 [查看交互大屏](ecommerce_behavior_dashboard.html) | 📸 [集群进程截图](assets/ecommerce/jps.png) | [HDFS 存储截图](assets/ecommerce/hdfs_du.png) | [架构图](assets/ecommerce/architecture.png)
+🔗 [查看交互大屏](ecommerce_behavior_dashboard.html) | 📸 [集群进程截图](jps.png) | [HDFS 存储截图](hdfs_du.png) | [架构图](architecture.png)
 
 ---
 
