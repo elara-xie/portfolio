@@ -2,32 +2,221 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>我的数据分析作品集</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elara Xie · 数据分析作品集</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; }
-        h1 { color: #0366d6; }
-        ul { list-style: none; padding: 0; }
-        li { margin: 15px 0; }
-        a { color: #0366d6; text-decoration: none; font-size: 1.2em; }
-        a:hover { text-decoration: underline; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 32px 16px;
+        }
+        .container {
+            max-width: 880px;
+            margin: 0 auto;
+        }
+
+        /* 头部 */
+        header {
+            margin-bottom: 36px;
+        }
+        header h1 {
+            font-size: 28px;
+            color: #1a1a2e;
+        }
+        header p {
+            color: #555;
+            margin-top: 6px;
+            font-size: 14px;
+        }
+
+        /* 项目卡片 */
+        .project {
+            background: #fff;
+            border-radius: 12px;
+            padding: 24px 26px;
+            margin-bottom: 18px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            transition: box-shadow 0.2s;
+        }
+        .project:hover {
+            box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+        }
+
+        .project-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 6px 12px;
+            margin-bottom: 10px;
+        }
+        .project-title {
+            font-size: 19px;
+            font-weight: 650;
+            color: #0366d6;
+        }
+        .project-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .tag {
+            font-size: 11px;
+            background: #eef2ff;
+            color: #4338ca;
+            padding: 2px 10px;
+            border-radius: 99px;
+            font-weight: 500;
+        }
+        .date {
+            font-size: 13px;
+            color: #888;
+            white-space: nowrap;
+        }
+
+        .project-section {
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        .project-section strong {
+            color: #222;
+        }
+        .project-section .highlight {
+            color: #b45309;
+            font-weight: 550;
+        }
+        .project-links {
+            margin-top: 10px;
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+        .project-links a {
+            font-size: 13px;
+            color: #0366d6;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .project-links a:hover {
+            text-decoration: underline;
+        }
+
+        hr {
+            margin: 34px 0 20px;
+            border: none;
+            border-top: 1px solid #ddd;
+        }
+        .footer-note {
+            font-size: 13px;
+            color: #999;
+            text-align: center;
+            margin-top: 42px;
+        }
     </style>
 </head>
 <body>
-    <h1>👋 欢迎来到我的数据分析作品集</h1>
-    <p>我是 elara-xie，这里展示了我独立完成的数据分析项目。</p>
-    <p>点击下方链接查看项目演示：</p>
-    <ul>
-        <li>📈 <a href="dashboard.html">A股多行业投资价值分析看板</a></li>
-        <li>👤 <a href="user_profile_analysis.html">用户画像分析看板</a></li>
-        <li>📊 <a href="user_monitor_dashboard.html">用户数据监控大屏</a></li>
-        <li>
-          <strong>🛒 电商用户行为离线分析大屏（Hadoop+Spark）</strong><br>
-          3000万行埋点 · Hive分层 · SparkSQL漏斗/RFM · 模拟数据<br>
-          技术栈：Hadoop 3.3 | Hive 3.1 | Spark 3.5 (PySpark) | HDFS | Chart.js<br>
-          演示链接：<a href="ecommerce_behavior_dashboard.html">点击查看大屏</a> |
-          <a href="#engineering">工程细节/代码</a>
-        </li>
-    </ul>
-    <p style="margin-top: 40px; color: #666; font-size: 0.9em;">所有项目数据均为模拟或公开数据，仅用于个人作品展示。</p>
+<div class="container">
+
+    <header>
+        <h1>👋 Elara Xie · 数据分析作品集</h1>
+        <p>独立完成的数据分析与工程化项目，涵盖量化建模、数据全链路构建、离线数仓与大屏可视化。</p>
+    </header>
+
+    <!-- 项目 1 -->
+    <div class="project">
+        <div class="project-header">
+            <span class="project-title">📈 A股多行业投资价值分析看板</span>
+            <span class="date">2026.09</span>
+        </div>
+        <div class="project-tags">
+            <span class="tag">Python</span>
+            <span class="tag">数据分析</span>
+            <span class="tag">看板</span>
+        </div>
+        <div class="project-section">
+            <strong>背景：</strong>针对传统选股效率低、结果不可复验的痛点，构建数据驱动的多因子评分框架，对7大行业15家头部公司进行量化评估。<br>
+            <strong>行动与成果：</strong>构建高可用数据采集管道（东方财富F10 + 腾讯行情自动降级），产出30个结构化CSV；设计三因子加权评分模型（估值40% / ROE 35% / 低负债25%），识别<span class="highlight">海尔智家（0.66）、迈瑞医疗（0.59）、贵州茅台（0.57）</span>为前三，茅台以33.82%平均ROE验证模型区分度。
+        </div>
+        <div class="project-links">
+            <a href="dashboard.html">👉 查看交互看板</a>
+        </div>
+    </div>
+
+    <!-- 项目 2 -->
+    <div class="project">
+        <div class="project-header">
+            <span class="project-title">👤 用户画像模拟与交互看板</span>
+            <span class="date">2026.09</span>
+        </div>
+        <div class="project-tags">
+            <span class="tag">Python</span>
+            <span class="tag">数据分析</span>
+            <span class="tag">Streamlit</span>
+        </div>
+        <div class="project-section">
+            <strong>背景：</strong>为克服公开数据集的局限，自建覆盖多场景的模拟用户画像数据集，实现从数据生产、清洗到可视化展示的完整数据工程闭环。<br>
+            <strong>行动与成果：</strong>设计数据分布规则（消费金额右偏长尾、年龄-消费倒U形曲线），生成<span class="highlight">300条×10字段</span>数据，均值~945元，高频用户达数千元；基于pandas实现空值填充与特征工程，搭建Streamlit + Plotly深色监控大屏与画像分析页，覆盖<span class="highlight">79城、12品类</span>，识别31-40岁群体消费力最强。
+        </div>
+        <div class="project-links">
+            <a href="user_profile_analysis.html">👉 查看交互看板</a>
+        </div>
+    </div>
+
+    <!-- 项目 3 -->
+    <div class="project">
+        <div class="project-header">
+            <span class="project-title">📊 用户数据监控大屏</span>
+            <span class="date">2026.09</span>
+        </div>
+        <div class="project-tags">
+            <span class="tag">Python</span>
+            <span class="tag">看板</span>
+        </div>
+        <div class="project-section">
+            <strong>背景：</strong>构建实时感用户数据监控面板，快速掌握核心指标波动。<br>
+            <strong>行动与成果：</strong>基于多维度统计函数与可视化组件，搭建监控大屏，实现关键指标的动态追踪与异常预警。
+        </div>
+        <div class="project-links">
+            <a href="user_monitor_dashboard.html">👉 查看交互看板</a>
+        </div>
+    </div>
+
+    <!-- 项目 4 -->
+    <div class="project">
+        <div class="project-header">
+            <span class="project-title">🛒 电商用户行为离线分析平台（Hadoop+Spark）</span>
+            <span class="date">2026.11</span>
+        </div>
+        <div class="project-tags">
+            <span class="tag">Hadoop 3.3</span>
+            <span class="tag">Hive 3.1</span>
+            <span class="tag">Spark 3.5</span>
+            <span class="tag">PySpark</span>
+            <span class="tag">HDFS</span>
+            <span class="tag">Chart.js</span>
+        </div>
+        <div class="project-section">
+            <strong>背景：</strong>从零搭建伪分布式大数据集群，完成3000万行电商埋点数据的生成、存储、分层建模与分析全链路。<br>
+            <strong>行动与成果：</strong>基于PySpark分布式向量化生成<span class="highlight">3000万行</span>模拟行为数据（Parquet列存仅212MB）；搭建Hadoop+Hive+Spark离线数仓（ODS/DWD/DWS三层），SparkSQL聚合漏斗查询<span class="highlight">~40秒</span>（较Hive MR提升3倍）；产出PV/UV、转化漏斗、RFM、TopN等10类指标，Chart.js交互大屏展示。
+        </div>
+        <div class="project-links">
+            <a href="ecommerce_behavior_dashboard.html">👉 查看交互大屏</a>
+            <a href="#">📂 工程细节与代码</a>
+        </div>
+    </div>
+
+    <hr>
+    <p style="font-size: 14px; color: #555; margin-top: 24px;">
+        📌 项目 1–3 侧重数据分析与可视化，项目 4 侧重大数据工程全链路。<br>
+        所有数据均为模拟或公开数据，仅用于个人作品展示。
+    </p>
+    <div class="footer-note">
+        © 2026 Elara Xie · 作品集
+    </div>
+
+</div>
 </body>
 </html>
